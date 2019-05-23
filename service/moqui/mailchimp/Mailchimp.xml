@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<services>
+        <service verb="save" noun="Contact">
+        <in-parameters>
+            <parameter name="firstName"/>
+            <parameter name="lastName"/>
+            <parameter name="emailAddress"/>
+        </in-parameters>
+        <actions>
+
+            <service-call name="mantle.party.PartyServices.create#Person" in-map="context" out-map="context"/>
+            <service-call name="mantle.party.ContactServices.store#PartyContactInfo" in-map="context" out-map="context"/>
+            <service-call name="moqui.mailchimp.Mailchimp.post#Mailchimp" in-map="context"/>
+
+        </actions>
+    </service>
+    <service verb="post" noun="Mailchimp" type="java" location="krithika.mailchimp.Mailchimp" method="postMailchimp">
+        <in-parameters>
+            <parameter name="firstName" required="true"/>
+            <parameter name="lastName" required="true"/>
+            <parameter name="emailAddress" required="true"/>
+        </in-parameters>
+    </service>
+
+</services>
+

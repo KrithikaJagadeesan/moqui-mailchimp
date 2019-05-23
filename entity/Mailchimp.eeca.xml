@@ -1,0 +1,4 @@
+<eeca entity="mantle.party.Party" on-create="true" on-update="true" on-delete="true" get-entire-entity="true">
+
+    <actions><service-call name="moqui.mailchimp.Mailchimp.create#Account" in-map="context"/></actions>
+</eeca>

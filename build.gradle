@@ -1,0 +1,56 @@
+apply plugin: 'groovy'
+
+sourceCompatibility = '1.8'
+def moquiDir = file(projectDir.absolutePath + '/../../..')
+def frameworkDir = file(moquiDir.absolutePath + '/framework')
+def jarBaseName= "mailchimp"
+
+// maybe in the future: repositories { mavenCentral() }
+repositories {
+    flatDir name: 'localLib', dirs: frameworkDir.absolutePath + '/lib'
+    jcenter()
+}
+
+// Log4J has annotation processors, disable to avoid warning
+tasks.withType(JavaCompile) { options.compilerArgs << "-proc:none" }
+tasks.withType(GroovyCompile) { options.compilerArgs << "-proc:none" }
+
+dependencies {
+    compile project(':framework')
+    testCompile project(':framework').configurations.testCompile.allDependencies
+    compile 'com.ecwid:maleorang:3.0-0.9.6'
+}
+
+// by default the Java plugin runs test on build, change to not do that (only run test if explicit task)
+// no longer workds as of gradle 4.8 or possibly earlier, use clear() instead: check.dependsOn.remove(test)
+check.dependsOn.clear()
+
+// mantle-usl has no jar file, currently no source to build
+// jar { baseName = componentNode.'@name' }
+jar {
+    destinationDir = file(projectDir.absolutePath + '/lib')
+    baseName = jarBaseName
+}
+task copyDependencies { doLast {
+    copy { from (configurations.runtime - project(':framework').configurations.runtime - project(':framework').jar.archivePath)
+        into file(projectDir.absolutePath + '/lib') }
+} }
+
+jar.dependsOn copyDependencies
+
+test {
+    dependsOn cleanTest
+    include '**/MantleUslSuite.class'
+    systemProperty 'moqui.runtime', moquiDir.absolutePath + '/runtime'
+    systemProperty 'moqui.conf', 'conf/MoquiDevConf.xml'
+    systemProperty 'moqui.init.static', 'true'
+
+    // show standard out and standard error of the test JVM(s) on the console
+    testLogging.showStandardStreams = true; testLogging.showExceptions = true
+
+    classpath += files(sourceSets.main.output.classesDirs)
+    // filter out classpath entries that don't exist (gradle adds a bunch of these), or ElasticSearch JarHell will blow up
+    classpath = classpath.filter { it.exists() }
+
+    beforeTest { descriptor -> logger.lifecycle("Running test: ${descriptor}") }
+}
